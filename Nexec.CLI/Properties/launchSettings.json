@@ -1,0 +1,16 @@
+{
+  "profiles": {
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    },
+    "HelloWorld": {
+      "commandName": "Project",
+      "commandLineArgs": "HelloWorldJob --assembly=\"$(SolutionDir)Nexec.Samples\\bin\\$(Configuration)\\$(TargetFramework)\\Nexec.Samples.dll\""
+    },
+    "Calculation": {
+      "commandName": "Project",
+      "commandLineArgs": "CalculationJob --property=\"a:5\" --property=\"b:12\" --property=\"op:*\" --assembly=\"$(SolutionDir)Nexec.Samples\\bin\\$(Configuration)\\$(TargetFramework)\\Nexec.Samples.dll\""
+    }
+  }
+}
