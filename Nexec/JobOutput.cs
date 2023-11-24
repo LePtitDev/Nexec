@@ -15,9 +15,9 @@ public class JobOutput
 
     public Type Type { get; init; } = default!;
 
-    public object? Get(object jobInstance)
+    public object? Get(JobInstance instance)
     {
-        return _getter(jobInstance);
+        return _getter(instance.Value);
     }
 
     internal static JobOutput FromProperty(PropertyInfo property)

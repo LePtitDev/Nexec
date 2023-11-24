@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace Nexec.CLI;
 
@@ -59,7 +60,18 @@ public static class Program
             options.AssemblyPath = typeof(Program).Assembly.Location;
         }
 
-        var provider = JobProvider.FromAssembly(Assembly.LoadFile(options.AssemblyPath));
+        JobProvider provider;
+        try
+        {
+            provider = JobProvider.FromAssembly(Assembly.LoadFile(options.AssemblyPath));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Cannot resolve assembly from path '{options.AssemblyPath}'");
+            Console.Error.WriteLine($"Exception: {ex}");
+            return -1;
+        }
+
         var job = provider.Jobs.FirstOrDefault(t => string.Equals(t.Name, options.JobName, StringComparison.OrdinalIgnoreCase));
         if (job == null)
         {
@@ -67,7 +79,21 @@ public static class Program
             return -1;
         }
 
-        var instance = job.Instantiate();
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var runner = new JobRunner(serviceProvider);
+
+        JobInstance instance;
+        try
+        {
+            instance = runner.Instantiate(job);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Cannot instancite job '{job.Name}'");
+            Console.Error.WriteLine($"Exception: {ex}");
+            return -1;
+        }
+
         foreach (var (key, value) in options.Properties)
         {
             var input = job.Inputs.FirstOrDefault(i => string.Equals(i.Name, key, StringComparison.OrdinalIgnoreCase));
@@ -80,8 +106,16 @@ public static class Program
             input.Set(instance, Convert.ChangeType(value, input.Type));
         }
 
-        var runner = new JobRunner();
-        await runner.ExecuteAsync(instance);
+        try
+        {
+            await runner.ExecuteAsync(instance);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Execution of job '{job.Name}' failed!");
+            Console.Error.WriteLine($"Exception: {ex}");
+            return -1;
+        }
 
         if (job.Outputs.Count > 0)
         {

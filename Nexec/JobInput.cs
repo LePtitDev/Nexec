@@ -15,9 +15,9 @@ public class JobInput
 
     public Type Type { get; init; } = default!;
 
-    public void Set(object jobInstance, object? value)
+    public void Set(JobInstance instance, object? value)
     {
-        _setter(jobInstance, value);
+        _setter(instance.Value, value);
     }
 
     internal static JobInput FromProperty(PropertyInfo property)

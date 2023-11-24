@@ -2,10 +2,20 @@
 
 public class JobRunner
 {
-    public Task ExecuteAsync(object instance)
+    private readonly IServiceProvider _serviceProvider;
+
+    public JobRunner(IServiceProvider serviceProvider)
     {
-        var executeMethod = instance.GetType().GetMethod("Execute");
-        executeMethod!.Invoke(instance, Array.Empty<object>());
-        return Task.CompletedTask;
+        _serviceProvider = serviceProvider;
+    }
+
+    public JobInstance Instantiate(JobInfo job)
+    {
+        return job.Instantiate(_serviceProvider);
+    }
+
+    public Task ExecuteAsync(JobInstance instance)
+    {
+        return instance.ExecuteAsync();
     }
 }

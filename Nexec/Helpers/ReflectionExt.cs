@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Nexec.Helpers;
 
@@ -39,5 +40,29 @@ internal static class ReflectionExt
     public static IEnumerable<Type> GetTypesOf<TBase>(this Assembly assembly, bool withAbstract = true, bool withGeneric = true)
     {
         return GetTypesOf(assembly, typeof(TBase), withAbstract, withGeneric);
+    }
+
+    public static Delegate CreateDelegate(this MethodInfo method, object? target)
+    {
+        Func<Type[], Type> getType;
+
+        var types = method.GetParameters().Select(p => p.ParameterType);
+        if (method.ReturnType == typeof(void))
+        {
+            getType = Expression.GetActionType;
+        }
+        else
+        {
+            getType = Expression.GetFuncType;
+            types = types.Append(method.ReturnType);
+        }
+
+        if (method.IsStatic)
+            return Delegate.CreateDelegate(getType(types.ToArray()), method);
+
+        if (target == null)
+            throw new ArgumentNullException(nameof(target), $"Target cannot be null for non-static method '{method.DeclaringType?.FullName}.{method.Name}()'");
+
+        return Delegate.CreateDelegate(getType(types.ToArray()), target, method.Name);
     }
 }

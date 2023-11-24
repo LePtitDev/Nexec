@@ -1,43 +1,34 @@
-﻿using Nexec.Attributes;
-using Nexec.Helpers;
+﻿using Nexec.Internal;
 
 namespace Nexec;
 
 public class JobInfo
 {
-    private readonly Func<object> _instantiateFunc;
+    private readonly IJobInfoProvider _infoProvider;
 
-    private JobInfo(Func<object> instantiateFunc)
+    private JobInfo(IJobInfoProvider infoProvider)
     {
-        _instantiateFunc = instantiateFunc;
+        _infoProvider = infoProvider;
+        Name = infoProvider.GetName();
+        Inputs = infoProvider.GetInputs();
+        Outputs = infoProvider.GetOutputs();
     }
 
-    public string Name { get; init; } = default!;
+    public string Name { get; }
 
-    public IReadOnlyList<JobInput> Inputs { get; init; } = default!;
+    public IReadOnlyList<JobInput> Inputs { get; }
 
-    public IReadOnlyList<JobOutput> Outputs { get; init; } = default!;
+    public IReadOnlyList<JobOutput> Outputs { get; }
 
-    public object Instantiate()
+    public JobInstance Instantiate(IServiceProvider serviceProvider)
     {
-        return _instantiateFunc();
+        var value = _infoProvider.CreateInstance(serviceProvider);
+        return new JobInstance(this, value, _infoProvider.GetExecuteDelegate(value));
     }
 
     internal static JobInfo FromType(Type type)
     {
-        return new JobInfo(() => Activator.CreateInstance(type)!)
-        {
-            Name = type.Name,
-            Inputs = type
-                .GetProperties()
-                .Where(p => p.HasAttribute<InputAttribute>())
-                .Select(JobInput.FromProperty)
-                .ToArray(),
-            Outputs = type
-                .GetProperties()
-                .Where(p => p.HasAttribute<OutputAttribute>())
-                .Select(JobOutput.FromProperty)
-                .ToArray()
-        };
+        var infoProvider = new JobInfoByTypeProvider(type);
+        return new JobInfo(infoProvider);
     }
 }
