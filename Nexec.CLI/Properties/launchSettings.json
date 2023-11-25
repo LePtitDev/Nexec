@@ -11,6 +11,10 @@
     "Calculation": {
       "commandName": "Project",
       "commandLineArgs": "CalculationJob --property=\"a:5\" --property=\"b:12\" --property=\"op:*\" --assembly=\"$(SolutionDir)Nexec.Samples\\bin\\$(Configuration)\\$(TargetFramework)\\Nexec.Samples.dll\""
+    },
+    "Math_Round": {
+      "commandName": "Project",
+      "commandLineArgs": "Math_Round --property=\"value:3.14\" --assembly=\"$(SolutionDir)Nexec.Samples\\bin\\$(Configuration)\\$(TargetFramework)\\Nexec.Samples.dll\""
     }
   }
 }

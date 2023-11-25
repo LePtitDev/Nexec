@@ -37,31 +37,7 @@ internal class JobInfoByTypeProvider : IJobInfoProvider
 
     public object CreateInstance(IServiceProvider serviceProvider)
     {
-        var constructors = _type.GetConstructors();
-        foreach (var constructor in constructors)
-        {
-            var parameters = constructor.GetParameters();
-            var paramList = new List<object?>();
-            foreach (var parameter in parameters)
-            {
-                var service = serviceProvider.GetService(parameter.ParameterType);
-                if (service != null)
-                {
-                    paramList.Add(service);
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            if (parameters.Length != paramList.Count)
-                continue;
-
-            return constructor.Invoke(parameters);
-        }
-
-        throw new InvalidOperationException($"Cannot resolve constructor from '{_type.FullName}'");
+        return _type.Instantiate(serviceProvider);
     }
 
     public Delegate GetExecuteDelegate(object instance)

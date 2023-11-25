@@ -26,6 +26,21 @@ public class JobInfo
         return new JobInstance(this, value, _infoProvider.GetExecuteDelegate(value));
     }
 
+    public static JobInfo Create<TState>(string name, Func<IServiceProvider, TState> instantiate, Action<TState> execute, IReadOnlyList<JobInput>? inputs = null, IReadOnlyList<JobOutput>? outputs = null)
+    {
+        return Create(name, instantiate, s =>
+        {
+            execute(s);
+            return Task.CompletedTask;
+        }, inputs, outputs);
+    }
+
+    public static JobInfo Create<TState>(string name, Func<IServiceProvider, TState> instantiate, Func<TState, Task> execute, IReadOnlyList<JobInput>? inputs = null, IReadOnlyList<JobOutput>? outputs = null)
+    {
+        var infoProvider = new JobInfoByDelegateProvider<TState>(name, instantiate, execute, inputs ?? Array.Empty<JobInput>(), outputs ?? Array.Empty<JobOutput>());
+        return new JobInfo(infoProvider);
+    }
+
     internal static JobInfo FromType(Type type)
     {
         var infoProvider = new JobInfoByTypeProvider(type);

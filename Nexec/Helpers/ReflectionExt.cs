@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Nexec.Helpers;
@@ -64,5 +65,34 @@ internal static class ReflectionExt
             throw new ArgumentNullException(nameof(target), $"Target cannot be null for non-static method '{method.DeclaringType?.FullName}.{method.Name}()'");
 
         return Delegate.CreateDelegate(getType(types.ToArray()), target, method.Name);
+    }
+
+    public static object Instantiate(this Type type, IServiceProvider serviceProvider)
+    {
+        var constructors = type.GetConstructors();
+        foreach (var constructor in constructors)
+        {
+            var parameters = constructor.GetParameters();
+            var paramList = new List<object?>();
+            foreach (var parameter in parameters)
+            {
+                var service = serviceProvider.GetService(parameter.ParameterType);
+                if (service != null)
+                {
+                    paramList.Add(service);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (parameters.Length != paramList.Count)
+                continue;
+
+            return constructor.Invoke(paramList.ToArray());
+        }
+
+        throw new InvalidOperationException($"Cannot resolve constructor from '{type.FullName}'");
     }
 }

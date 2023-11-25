@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Globalization;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace Nexec.CLI;
@@ -60,10 +61,11 @@ public static class Program
             options.AssemblyPath = typeof(Program).Assembly.Location;
         }
 
-        JobProvider provider;
+        IJobProvider provider;
         try
         {
-            provider = JobProvider.FromAssembly(Assembly.LoadFile(options.AssemblyPath));
+            var assembly = Assembly.LoadFile(options.AssemblyPath);
+            provider = JobProvider.From(assembly);
         }
         catch (Exception ex)
         {
@@ -72,14 +74,14 @@ public static class Program
             return -1;
         }
 
-        var job = provider.Jobs.FirstOrDefault(t => string.Equals(t.Name, options.JobName, StringComparison.OrdinalIgnoreCase));
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var job = provider.GetJobs(serviceProvider).FirstOrDefault(t => string.Equals(t.Name, options.JobName, StringComparison.OrdinalIgnoreCase));
         if (job == null)
         {
             Console.WriteLine($"Job '{options.JobName}' not found");
             return -1;
         }
 
-        var serviceProvider = new ServiceCollection().BuildServiceProvider();
         var runner = new JobRunner(serviceProvider);
 
         JobInstance instance;
@@ -89,7 +91,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Cannot instancite job '{job.Name}'");
+            Console.Error.WriteLine($"Cannot instantiate job '{job.Name}'");
             Console.Error.WriteLine($"Exception: {ex}");
             return -1;
         }
@@ -103,7 +105,7 @@ public static class Program
                 return -1;
             }
 
-            input.Set(instance, Convert.ChangeType(value, input.Type));
+            input.Set(instance, Convert.ChangeType(value, input.Type, CultureInfo.InvariantCulture));
         }
 
         try

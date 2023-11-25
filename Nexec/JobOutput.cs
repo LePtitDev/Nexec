@@ -17,7 +17,26 @@ public class JobOutput
 
     public object? Get(JobInstance instance)
     {
-        return _getter(instance.Value);
+        var value = _getter(instance.Value);
+
+        if ((Type.IsValueType && (value == null || value.GetType() != Type)) || (!Type.IsValueType && value != null && !Type.IsInstanceOfType(value)))
+            throw new InvalidOperationException($"Value must be of type '{Type.FullName}'");
+
+        return value;
+    }
+
+    public static JobOutput Create<TState, TValue>(string name, Func<TState, TValue?> getter)
+    {
+        return Create(name, typeof(TValue), (TState s) => getter(s));
+    }
+
+    public static JobOutput Create<TState>(string name, Type type, Func<TState, object?> getter)
+    {
+        return new JobOutput(i => getter(i is TState state ? state : throw new ArgumentException($"Instance is not of type '{typeof(TState).FullName}'")))
+        {
+            Name = name,
+            Type = type
+        };
     }
 
     internal static JobOutput FromProperty(PropertyInfo property)

@@ -4,17 +4,46 @@ using Nexec.Helpers;
 
 namespace Nexec;
 
-public class JobProvider
+public interface IJobProvider
 {
-    public JobProvider(JobInfo[] jobs)
+    public IEnumerable<JobInfo> GetJobs(IServiceProvider serviceProvider);
+}
+
+public class JobProvider : IJobProvider
+{
+    private readonly Assembly[] _assemblies;
+
+    private JobProvider(Assembly[] assemblies)
     {
-        Jobs = jobs;
+        _assemblies = assemblies;
     }
 
-    public JobInfo[] Jobs { get; }
+    public static IJobProvider Default => From(AppDomain.CurrentDomain.GetAssemblies());
 
-    public static JobProvider FromAssembly(Assembly assembly)
+    public IEnumerable<JobInfo> GetJobs(IServiceProvider serviceProvider)
     {
-        return new JobProvider(assembly.GetTypes().Where(t => t.HasAttribute<JobAttribute>()).Select(JobInfo.FromType).ToArray());
+        return _assemblies
+            .SelectMany(a => a
+                .GetTypes()
+                .Where(t => t.HasAttribute<JobAttribute>())
+                .Select(JobInfo.FromType)
+                .Concat(a
+                    .GetTypes()
+                    .Where(t => t.HasAttribute<ProviderAttribute>())
+                    .SelectMany(t =>
+                    {
+                        if (!typeof(IJobProvider).IsAssignableFrom(t))
+                            throw new InvalidOperationException($"Type '{t.FullName}' do not implement '{nameof(IJobProvider)}'");
+
+                        var provider = (IJobProvider)t.Instantiate(serviceProvider);
+                        return provider.GetJobs(serviceProvider);
+                    }))
+            )
+            .ToArray();
+    }
+
+    public static IJobProvider From(params Assembly[] assemblies)
+    {
+        return new JobProvider(assemblies);
     }
 }
