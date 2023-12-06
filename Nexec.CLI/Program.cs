@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using Nexec.Build;
+using Nexec.Engine;
 
 namespace Nexec.CLI;
 
@@ -80,7 +81,7 @@ public static class Program
 
             Console.WriteLine("Build finished!");
             Console.WriteLine();
-            options.AssemblyPath = Path.Combine(Environment.CurrentDirectory, ".build", Path.GetFileNameWithoutExtension(options.ProjectPath) + ".dll");
+            options.AssemblyPath = builder.OutputFilePath;
         }
 
         if (string.IsNullOrEmpty(options.AssemblyPath))

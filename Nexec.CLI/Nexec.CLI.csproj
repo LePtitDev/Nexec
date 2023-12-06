@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Nexec\Nexec.csproj" />
     <ProjectReference Include="..\Nexec.Build\Nexec.Build.csproj" />
+    <ProjectReference Include="..\Nexec.Engine\Nexec.Engine.csproj" />
   </ItemGroup>
 
   <ItemGroup>

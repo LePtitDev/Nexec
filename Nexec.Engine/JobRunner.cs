@@ -1,4 +1,4 @@
-﻿namespace Nexec;
+﻿namespace Nexec.Engine;
 
 public class JobRunner
 {

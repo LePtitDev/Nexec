@@ -12,6 +12,10 @@ public class NexecBuilder
 
     public string ProjectOrSolutionPath { get; }
 
+    public string OutputDirectory => Path.Combine(Environment.CurrentDirectory, ".build");
+
+    public string OutputFilePath => Path.Combine(OutputDirectory, Path.GetFileNameWithoutExtension(ProjectOrSolutionPath) + ".dll");
+
     public Task<bool> RunAsync()
     {
         var dotnetPath = PlatformHelpers.FindDotnetPath();
@@ -26,7 +30,7 @@ public class NexecBuilder
                 "build",
                 ProjectOrSolutionPath,
                 "-c", "Release",
-                "-o", Path.Combine(Environment.CurrentDirectory, ".build")
+                "-o", OutputDirectory
             }
         });
     }
