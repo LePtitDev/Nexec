@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Nexec\Nexec.csproj" />
+    <ProjectReference Include="..\Nexec.Build\Nexec.Build.csproj" />
   </ItemGroup>
 
   <ItemGroup>

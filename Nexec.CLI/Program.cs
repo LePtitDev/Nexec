@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Nexec.Build;
 
 namespace Nexec.CLI;
 
@@ -20,6 +21,16 @@ public static class Program
                 }
 
                 options.AssemblyPath = arg["--assembly=".Length..];
+            }
+            else if (arg.StartsWith("--project=", StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrEmpty(options.ProjectPath))
+                {
+                    Console.Error.WriteLine("Project already defined");
+                    return -1;
+                }
+
+                options.ProjectPath = arg["--project=".Length..];
             }
             else if (arg.StartsWith("--property=", StringComparison.Ordinal))
             {
@@ -54,6 +65,22 @@ public static class Program
         {
             Console.WriteLine("Job name is missing");
             return -1;
+        }
+
+        if (!string.IsNullOrEmpty(options.ProjectPath))
+        {
+            Console.WriteLine($"Building '{options.ProjectPath}'...");
+            var builder = new NexecBuilder(options.ProjectPath);
+            var result = await builder.RunAsync();
+            if (!result)
+            {
+                Console.WriteLine("Build failed!");
+                return -1;
+            }
+
+            Console.WriteLine("Build finished!");
+            Console.WriteLine();
+            options.AssemblyPath = Path.Combine(Environment.CurrentDirectory, ".build", Path.GetFileNameWithoutExtension(options.ProjectPath) + ".dll");
         }
 
         if (string.IsNullOrEmpty(options.AssemblyPath))
@@ -137,6 +164,8 @@ public static class Program
         public string? JobName { get; set; }
 
         public string? AssemblyPath { get; set; }
+
+        public string? ProjectPath { get; set; }
 
         public Dictionary<string, string> Properties { get; } = new Dictionary<string, string>();
     }

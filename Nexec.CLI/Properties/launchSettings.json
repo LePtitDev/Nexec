@@ -6,7 +6,7 @@
     },
     "HelloWorld": {
       "commandName": "Project",
-      "commandLineArgs": "HelloWorldJob --assembly=\"$(SolutionDir)Nexec.Samples\\bin\\$(Configuration)\\$(TargetFramework)\\Nexec.Samples.dll\""
+      "commandLineArgs": "HelloWorldJob --project=\"$(SolutionDir)Nexec.Samples\\Nexec.Samples.csproj\""
     },
     "Calculation": {
       "commandName": "Project",
