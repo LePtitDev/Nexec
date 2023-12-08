@@ -1,12 +1,8 @@
 {
   "profiles": {
-    "WSL": {
-      "commandName": "WSL2",
-      "distributionName": ""
-    },
     "HelloWorld": {
       "commandName": "Project",
-      "commandLineArgs": "HelloWorldJob --project=\"$(SolutionDir)Nexec.Samples\\Nexec.Samples.csproj\""
+      "commandLineArgs": "HelloWorldJob --project=\"$(SolutionDir)Nexec.Samples\\Nexec.Samples.csproj\" --verbose"
     },
     "Calculation": {
       "commandName": "Project",

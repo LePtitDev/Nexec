@@ -1,8 +1,11 @@
 ﻿using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using Nexec.Build;
 using Nexec.Engine;
+using Serilog;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Nexec.CLI;
 
@@ -32,6 +35,10 @@ public static class Program
                 }
 
                 options.ProjectPath = arg["--project=".Length..];
+            }
+            else if (arg.Equals("--verbose", StringComparison.Ordinal))
+            {
+                options.Verbose = true;
             }
             else if (arg.StartsWith("--property=", StringComparison.Ordinal))
             {
@@ -68,18 +75,23 @@ public static class Program
             return -1;
         }
 
+        var serviceProvider = ConfigureServices(new ServiceCollection(), options.Verbose).BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         if (!string.IsNullOrEmpty(options.ProjectPath))
         {
-            Console.WriteLine($"Building '{options.ProjectPath}'...");
             var builder = new NexecBuilder(options.ProjectPath);
-            var result = await builder.RunAsync();
-            if (!result)
+            var buildLogger = loggerFactory.CreateLogger("Build");
+            using (buildLogger.BeginScope($"Building '{options.ProjectPath}'..."))
             {
-                Console.WriteLine("Build failed!");
-                return -1;
+                var result = await builder.RunAsync(buildLogger);
+                if (!result)
+                {
+                    buildLogger.LogError("Build failed!");
+                    return -1;
+                }
             }
 
-            Console.WriteLine("Build finished!");
+            buildLogger.LogDebug("Build finished!");
             Console.WriteLine();
             options.AssemblyPath = builder.OutputFilePath;
         }
@@ -89,6 +101,7 @@ public static class Program
             options.AssemblyPath = typeof(Program).Assembly.Location;
         }
 
+        var runnerLogger = loggerFactory.CreateLogger("Runner");
         IJobProvider provider;
         try
         {
@@ -97,16 +110,14 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Cannot resolve assembly from path '{options.AssemblyPath}'");
-            Console.Error.WriteLine($"Exception: {ex}");
+            runnerLogger.LogError(ex, $"Cannot resolve assembly from path '{options.AssemblyPath}'");
             return -1;
         }
 
-        var serviceProvider = new ServiceCollection().BuildServiceProvider();
         var job = provider.GetJobs(serviceProvider).FirstOrDefault(t => string.Equals(t.Name, options.JobName, StringComparison.OrdinalIgnoreCase));
         if (job == null)
         {
-            Console.WriteLine($"Job '{options.JobName}' not found");
+            runnerLogger.LogError($"Job '{options.JobName}' not found");
             return -1;
         }
 
@@ -119,8 +130,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Cannot instantiate job '{job.Name}'");
-            Console.Error.WriteLine($"Exception: {ex}");
+            runnerLogger.LogError(ex, $"Cannot instantiate job '{job.Name}'");
             return -1;
         }
 
@@ -129,7 +139,7 @@ public static class Program
             var input = job.Inputs.FirstOrDefault(i => string.Equals(i.Name, key, StringComparison.OrdinalIgnoreCase));
             if (input == null)
             {
-                Console.WriteLine($"Input '{key}' not found");
+                runnerLogger.LogError($"Input '{key}' not found");
                 return -1;
             }
 
@@ -138,26 +148,43 @@ public static class Program
 
         try
         {
-            await runner.ExecuteAsync(instance);
+            var jobLogger = loggerFactory.CreateLogger("Job");
+            using (jobLogger.BeginScope("Running job..."))
+            {
+                await runner.ExecuteAsync(instance);
+            }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Execution of job '{job.Name}' failed!");
-            Console.Error.WriteLine($"Exception: {ex}");
+            runnerLogger.LogError(ex, $"Execution of job '{job.Name}' failed!");
             return -1;
         }
 
         if (job.Outputs.Count > 0)
         {
             Console.WriteLine();
-            Console.WriteLine("Output(s):");
+            runnerLogger.LogInformation("Output(s):");
             foreach (var output in job.Outputs)
             {
-                Console.WriteLine($"  {output.Name}: {output.Get(instance)}");
+                runnerLogger.LogInformation($"  {output.Name}: {output.Get(instance)}");
             }
         }
 
         return 0;
+    }
+
+    private static IServiceCollection ConfigureServices(IServiceCollection services, bool verbose)
+    {
+        var loggerConfiguration = new LoggerConfiguration().WriteTo.Console(outputTemplate: "[{Level:u3}] {Message:Ij}{NewLine}{Exception}");
+        if (verbose)
+            loggerConfiguration.MinimumLevel.Verbose();
+
+        Log.Logger = loggerConfiguration.CreateLogger();
+
+        services.AddLogging(builder =>
+            builder.AddSerilog(dispose: true));
+
+        return services;
     }
 
     private class Options
@@ -167,6 +194,8 @@ public static class Program
         public string? AssemblyPath { get; set; }
 
         public string? ProjectPath { get; set; }
+
+        public bool Verbose { get; set; }
 
         public Dictionary<string, string> Properties { get; } = new Dictionary<string, string>();
     }

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nexec.Build.Internal;
 
 namespace Nexec.Build;
@@ -16,7 +17,7 @@ public class NexecBuilder
 
     public string OutputFilePath => Path.Combine(OutputDirectory, Path.GetFileNameWithoutExtension(ProjectOrSolutionPath) + ".dll");
 
-    public Task<bool> RunAsync()
+    public Task<bool> RunAsync(ILogger logger)
     {
         var dotnetPath = PlatformHelpers.FindDotnetPath();
         if (string.IsNullOrEmpty(dotnetPath))
@@ -32,6 +33,6 @@ public class NexecBuilder
                 "-c", "Release",
                 "-o", OutputDirectory
             }
-        });
+        }, logger, LogLevel.Debug);
     }
 }

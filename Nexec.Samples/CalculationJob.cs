@@ -1,10 +1,18 @@
-﻿using Nexec.Attributes;
+﻿using Microsoft.Extensions.Logging;
+using Nexec.Attributes;
 
 namespace Nexec.Samples;
 
 [Job]
 public class CalculationJob
 {
+    private readonly ILogger<CalculationJob> _logger;
+
+    public CalculationJob(ILogger<CalculationJob> logger)
+    {
+        _logger = logger;
+    }
+
     [Input]
     public int A { get; set; }
 
@@ -22,27 +30,27 @@ public class CalculationJob
         switch (Op)
         {
             case "+":
-                Console.WriteLine($"{A} + {B}");
+                _logger.LogInformation($"{A} + {B}");
                 Result = A + B;
                 break;
             case "-":
-                Console.WriteLine($"{A} - {B}");
+                _logger.LogInformation($"{A} - {B}");
                 Result = A - B;
                 break;
             case "*":
-                Console.WriteLine($"{A} * {B}");
+                _logger.LogInformation($"{A} * {B}");
                 Result = A * B;
                 break;
             case "/":
-                Console.WriteLine($"{A} / {B}");
+                _logger.LogInformation($"{A} / {B}");
                 Result = A / B;
                 break;
             case "%":
-                Console.WriteLine($"{A} % {B}");
+                _logger.LogInformation($"{A} % {B}");
                 Result = A % B;
                 break;
             default:
-                Console.Error.WriteLine($"Operation '{Op}' not supported");
+                _logger.LogError($"Operation '{Op}' not supported");
                 return;
         }
     }

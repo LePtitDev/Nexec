@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace Nexec.Build.Internal;
 
@@ -61,14 +62,33 @@ internal static class PlatformHelpers
         return null;
     }
 
-    public static async Task<bool> RunProcessAsync(ProcessStartInfo startInfo)
+    public static async Task<bool> RunProcessAsync(ProcessStartInfo startInfo, ILogger logger, LogLevel outputLevel = LogLevel.Information)
     {
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+
         var process = new Process
         {
             StartInfo = startInfo
         };
 
+        process.OutputDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrEmpty(args.Data))
+                logger.Log(outputLevel, args.Data);
+        };
+
+        process.ErrorDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrEmpty(args.Data))
+                logger.LogError(args.Data);
+        };
+
         process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
         await process.WaitForExitAsync();
 
         return process.ExitCode == 0;
